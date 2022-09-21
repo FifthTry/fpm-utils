@@ -1,0 +1,8 @@
+record httprequest {
+    path: string,
+    headers: list<tuple<string, string>>,
+    querystring: string,
+    method: string
+}
+
+handlerequest: func(a: httprequest) -> string
