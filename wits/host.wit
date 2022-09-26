@@ -1,0 +1,13 @@
+record httpresponse {
+    data: string,
+}
+
+record httprequest {
+    path: string,
+    method: string,
+    payload: string,
+    headers: list<tuple<string, string>>
+}
+
+
+http: func(request: httprequest) -> httpresponse
