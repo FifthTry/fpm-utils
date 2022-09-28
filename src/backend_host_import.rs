@@ -7,6 +7,7 @@ pub mod guest_backend {
         pub path: &'a str,
         pub headers: &'a [(&'a str, &'a str)],
         pub querystring: &'a str,
+        pub payload: &'a str,
         pub method: &'a str,
     }
     impl<'a> core::fmt::Debug for Httprequest<'a> {
@@ -15,6 +16,7 @@ pub mod guest_backend {
                 .field("path", &self.path)
                 .field("headers", &self.headers)
                 .field("querystring", &self.querystring)
+                .field("payload", &self.payload)
                 .field("method", &self.method)
                 .finish()
         }
@@ -27,12 +29,12 @@ pub mod guest_backend {
     /// when translating between the host and wasm.
     #[derive(Default)]
     pub struct GuestBackendData {}
-    #[allow(dead_code)]
     pub struct GuestBackend<T> {
         get_state: Box<dyn Fn(&mut T) -> &mut GuestBackendData + Send + Sync>,
         cabi_realloc: wasmtime::TypedFunc<(i32, i32, i32, i32), i32>,
         canonical_abi_free: wasmtime::TypedFunc<(i32, i32, i32), ()>,
-        handlerequest: wasmtime::TypedFunc<(i32, i32, i32, i32, i32, i32, i32, i32), (i32,)>,
+        handlerequest:
+            wasmtime::TypedFunc<(i32, i32, i32, i32, i32, i32, i32, i32, i32, i32), (i32,)>,
         memory: wasmtime::Memory,
     }
     impl<T> GuestBackend<T> {
@@ -94,7 +96,7 @@ pub mod guest_backend {
                 .get_typed_func::<(i32, i32, i32, i32), i32, _>(&mut store, "cabi_realloc")?;
             let canonical_abi_free = instance
                 .get_typed_func::<(i32, i32, i32), (), _>(&mut store, "canonical_abi_free")?;
-            let handlerequest= instance.get_typed_func::<(i32,i32,i32,i32,i32,i32,i32,i32,), (i32,), _>(&mut store, "handlerequest: func(a: record { path: string, headers: list<tuple<string, string>>, querystring: string, method: string }) -> string")?;
+            let handlerequest= instance.get_typed_func::<(i32,i32,i32,i32,i32,i32,i32,i32,i32,i32,), (i32,), _>(&mut store, "handlerequest: func(a: record { path: string, headers: list<tuple<string, string>>, querystring: string, payload: string, method: string }) -> string")?;
             let memory = instance
                 .get_memory(&mut store, "memory")
                 .ok_or_else(|| anyhow::anyhow!("`memory` export not a memory"))?;
@@ -118,6 +120,7 @@ pub mod guest_backend {
                 path: path0,
                 headers: headers0,
                 querystring: querystring0,
+                payload: payload0,
                 method: method0,
             } = a;
             let vec1 = path0;
@@ -163,12 +166,17 @@ pub mod guest_backend {
             memory
                 .data_mut(&mut caller)
                 .store_many(ptr6, vec6.as_bytes())?;
-            let vec7 = method0;
+            let vec7 = payload0;
             let ptr7 = func_cabi_realloc.call(&mut caller, (0, 0, 1, vec7.len() as i32))?;
             memory
                 .data_mut(&mut caller)
                 .store_many(ptr7, vec7.as_bytes())?;
-            let (result8_0,) = self.handlerequest.call(
+            let vec8 = method0;
+            let ptr8 = func_cabi_realloc.call(&mut caller, (0, 0, 1, vec8.len() as i32))?;
+            memory
+                .data_mut(&mut caller)
+                .store_many(ptr8, vec8.as_bytes())?;
+            let (result9_0,) = self.handlerequest.call(
                 &mut caller,
                 (
                     ptr1,
@@ -179,16 +187,18 @@ pub mod guest_backend {
                     vec6.len() as i32,
                     ptr7,
                     vec7.len() as i32,
+                    ptr8,
+                    vec8.len() as i32,
                 ),
             )?;
-            let load9 = memory.data_mut(&mut caller).load::<i32>(result8_0 + 0)?;
-            let load10 = memory.data_mut(&mut caller).load::<i32>(result8_0 + 4)?;
-            let ptr11 = load9;
-            let len11 = load10;
+            let load10 = memory.data_mut(&mut caller).load::<i32>(result9_0 + 0)?;
+            let load11 = memory.data_mut(&mut caller).load::<i32>(result9_0 + 4)?;
+            let ptr12 = load10;
+            let len12 = load11;
 
-            let data11 = copy_slice(&mut caller, memory, ptr11, len11, 1)?;
-            func_canonical_abi_free.call(&mut caller, (ptr11, len11, 1))?;
-            Ok(String::from_utf8(data11).map_err(|_| wasmtime::Trap::new("invalid utf-8"))?)
+            let data12 = copy_slice(&mut caller, memory, ptr12, len12, 1)?;
+            func_canonical_abi_free.call(&mut caller, (ptr12, len12, 1))?;
+            Ok(String::from_utf8(data12).map_err(|_| wasmtime::Trap::new("invalid utf-8"))?)
         }
     }
     use wit_bindgen_host_wasmtime_rust::rt::copy_slice;

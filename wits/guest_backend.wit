@@ -2,6 +2,7 @@ record httprequest {
     path: string,
     headers: list<tuple<string, string>>,
     querystring: string,
+    payload: string,
     method: string
 }
 
