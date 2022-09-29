@@ -6,4 +6,9 @@ record httprequest {
     method: string
 }
 
-handlerequest: func(a: httprequest) -> string
+record httpresponse{
+    data: string,
+    success: bool
+}
+
+handlerequest: func(a: httprequest) -> httpresponse

@@ -1,7 +1,11 @@
 #[allow(clippy::all)]
+#[allow(dead_code)]
 pub mod guest_backend {
     #[allow(unused_imports)]
     use wit_bindgen_host_wasmtime_rust::{anyhow, wasmtime};
+
+    use serde::{Deserialize, Serialize};
+
     #[derive(Clone)]
     pub struct Httprequest<'a> {
         pub path: &'a str,
@@ -18,6 +22,19 @@ pub mod guest_backend {
                 .field("querystring", &self.querystring)
                 .field("payload", &self.payload)
                 .field("method", &self.method)
+                .finish()
+        }
+    }
+    #[derive(Clone, Serialize, Deserialize)]
+    pub struct Httpresponse {
+        pub data: String,
+        pub success: bool,
+    }
+    impl core::fmt::Debug for Httpresponse {
+        fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+            f.debug_struct("Httpresponse")
+                .field("data", &self.data)
+                .field("success", &self.success)
                 .finish()
         }
     }
@@ -96,7 +113,7 @@ pub mod guest_backend {
                 .get_typed_func::<(i32, i32, i32, i32), i32, _>(&mut store, "cabi_realloc")?;
             let canonical_abi_free = instance
                 .get_typed_func::<(i32, i32, i32), (), _>(&mut store, "canonical_abi_free")?;
-            let handlerequest= instance.get_typed_func::<(i32,i32,i32,i32,i32,i32,i32,i32,i32,i32,), (i32,), _>(&mut store, "handlerequest: func(a: record { path: string, headers: list<tuple<string, string>>, querystring: string, payload: string, method: string }) -> string")?;
+            let handlerequest= instance.get_typed_func::<(i32,i32,i32,i32,i32,i32,i32,i32,i32,i32,), (i32,), _>(&mut store, "handlerequest: func(a: record { path: string, headers: list<tuple<string, string>>, querystring: string, payload: string, method: string }) -> record { data: string, success: bool }")?;
             let memory = instance
                 .get_memory(&mut store, "memory")
                 .ok_or_else(|| anyhow::anyhow!("`memory` export not a memory"))?;
@@ -112,7 +129,7 @@ pub mod guest_backend {
             &self,
             mut caller: impl wasmtime::AsContextMut<Data = T>,
             a: Httprequest<'_>,
-        ) -> Result<String, wasmtime::Trap> {
+        ) -> Result<Httpresponse, wasmtime::Trap> {
             let func_canonical_abi_free = &self.canonical_abi_free;
             let func_cabi_realloc = &self.cabi_realloc;
             let memory = &self.memory;
@@ -198,9 +215,19 @@ pub mod guest_backend {
 
             let data12 = copy_slice(&mut caller, memory, ptr12, len12, 1)?;
             func_canonical_abi_free.call(&mut caller, (ptr12, len12, 1))?;
-            Ok(String::from_utf8(data12).map_err(|_| wasmtime::Trap::new("invalid utf-8"))?)
+            let load13 = memory.data_mut(&mut caller).load::<u8>(result9_0 + 8)?;
+            Ok(Httpresponse {
+                data: String::from_utf8(data12)
+                    .map_err(|_| wasmtime::Trap::new("invalid utf-8"))?,
+                success: match i32::from(load13) {
+                    0 => false,
+                    1 => true,
+                    _ => return Err(invalid_variant("bool")),
+                },
+            })
         }
     }
     use wit_bindgen_host_wasmtime_rust::rt::copy_slice;
+    use wit_bindgen_host_wasmtime_rust::rt::invalid_variant;
     use wit_bindgen_host_wasmtime_rust::rt::RawMem;
 }
