@@ -121,8 +121,8 @@ mod host {
             }
         }
     }
-
     #[repr(align(4))]
     struct __HostRetArea([u8; 8]);
     static mut __HOST_RET_AREA: __HostRetArea = __HostRetArea([0; 8]);
 }
+const _: &str = include_str!(r#"/Users/shobhitsharma/repos/fifthtry/fpm-utils/wits/host.wit"#);

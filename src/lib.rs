@@ -19,8 +19,13 @@ pub fn wasm_backend(
     let where_clause = &sig.generics.where_clause;
     let block = input_fn.block;
     // let host_stream: proc_macro2::TokenStream = include_str!("guest_imports.rs").parse().unwrap();
-    let guest_stream: proc_macro2::TokenStream = include_str!("guest_exports.rs").parse().unwrap();
+    /*
+    TODO: Evaluate the host_stream import in the macro. Right now importing the host_stream in the
+    macro results in the `cabi_realloc` function not found error. Unable to find any references to
+    that on the internet. So just working with the guest_stream for now
+    */
 
+    let guest_stream: proc_macro2::TokenStream = include_str!("guest_exports.rs").parse().unwrap();
     quote!(
         // #host_stream
 
