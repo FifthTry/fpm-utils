@@ -1,11 +1,18 @@
 [package]
-name = "fpm-utils"
+name = "fpm-utils-macro"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+proc-macro = true
+
 
 [dependencies]
-wit-bindgen-host-wasmtime-rust = { git = "https://github.com/bytecodealliance/wit-bindgen.git", rev="45604f58336afaa23a79ed619ef50b69de473688" }
-serde = {version="1.0.144", features=["derive"]}
-serde_json = "1.0.85"
+quote = "1.0.21"
+proc-macro2 = "1.0.46"
+wit-bindgen-guest-rust = { git = "https://github.com/bytecodealliance/wit-bindgen.git", rev="45604f58336afaa23a79ed619ef50b69de473688" }
+
+[dependencies.syn]
+version = "1.0.102"
+features = ["full"]
