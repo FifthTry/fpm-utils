@@ -3,9 +3,6 @@
 pub mod guest_backend {
     #[allow(unused_imports)]
     use wit_bindgen_host_wasmtime_rust::{anyhow, wasmtime};
-
-    use serde::{Deserialize, Serialize};
-
     #[derive(Clone)]
     pub struct Httprequest<'a> {
         pub path: &'a str,
@@ -25,7 +22,7 @@ pub mod guest_backend {
                 .finish()
         }
     }
-    #[derive(Clone, Serialize, Deserialize)]
+    #[derive(Clone)]
     pub struct Httpresponse {
         pub data: String,
         pub success: bool,
